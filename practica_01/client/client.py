@@ -109,6 +109,13 @@ def upload():
                     break
             time.sleep(0.05)
 
+
+        #After upload the files we receive an update of the drive content
+        drive_content = s.recv(1024)
+        drive_content = pickle.loads(drive_content)
+        updateFileList(drive_content)
+        time.sleep(0.05)
+
 #Function to delete a file from the server
 def delete():
     reslist = list()

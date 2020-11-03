@@ -47,7 +47,7 @@ if __name__ == "__main__":
 
                 #If there is not response from the cliente then we break out of the loop
                 if not data:
-                    print("ay LMAO")
+                    print("Conection finished")
                     break
 
                 #Download files
@@ -122,6 +122,14 @@ if __name__ == "__main__":
                                 print("File received")
                                 break
                         time.sleep(0.05)
+
+
+                    #After upload the files the server sents an content update
+                    print("Sending updated content list...")
+                    drive_content = updateFileList()
+                    clientsocket.send(drive_content)
+                    time.sleep(0.05)
+
                     
                 #Delete files
                 elif(data==3):
