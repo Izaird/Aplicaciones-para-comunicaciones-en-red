@@ -4,6 +4,7 @@ import socket
 import threading
 import time
 import pickle
+import os
 mypath = "Files/"
 BUFFER_SIZE = 4096
 SEPARATOR = "<SEPARATOR>"
@@ -20,7 +21,7 @@ def download():
 
     #If the user doesn't pick any item then we won't sent anything
     if not reslist:
-        print("You need to select at least an item")
+        print("You need to select at least one item")
     else:
         s.send(b'1')
         time.sleep(.05)
@@ -68,7 +69,45 @@ def upload():
     files = filedialog.askopenfilenames(initialdir="~/Documents",\
         title="Select the files you want to upload", \
         filetypes=(("All Files", "*.*"), ("Png", "*.png"))) 
-    print (root.tk.splitlist(files))
+    send_this_items = root.tk.splitlist(files)
+    if not send_this_items:
+        print("You need to select atleast one item")
+    else:
+        s.send(b'2')
+        time.sleep(0.05)
+        number_of_items = len(send_this_items)
+
+        s.send(f"{number_of_items}".encode())
+        time.sleep(0.05)
+        for item in send_this_items:
+            total_recv = 0
+            #get the file size
+            filesize=os.path.getsize(item)
+            #remove the absolute path
+            filename=os.path.basename(item)
+            
+            #Sedn the filename and the filesize
+            print(filename)
+            s.send(f"{filename}{SEPARATOR}{filesize}".encode())
+            time.sleep(0.05)
+
+            #start sending the file
+            f = open(item, 'rb')
+            while True:
+                #Read the bytes from the file
+                bytes_read = f.read(BUFFER_SIZE)
+
+                #We use sendall to assure transmission in
+                #busy networks
+                s.sendall(bytes_read)
+
+                total_recv += len(bytes_read)
+                print("{:.2f}".format((total_recv/float(filesize))*100) + "% Done")
+                if(total_recv >= filesize):
+                    f.close()
+                    print("File sent")
+                    break
+            time.sleep(0.05)
 
 #Function to delete a file from the server
 def delete():

@@ -89,8 +89,40 @@ if __name__ == "__main__":
                #Upload file 
                 elif(data==2):
                     print("The request to upload the files has been received")
-                    clientsocket.send(b"Send the file/files")
-                
+                    number_of_files = clientsocket.recv(1024).decode()
+                    time.sleep(0.05)
+                    for _ in range(int(number_of_files)):
+                        total_recv = 0
+                        #receive the file infos
+                        received = clientsocket.recv(BUFFER_SIZE).decode()
+                        filename, filesize = received.split(SEPARATOR)
+
+                        #convert to integer
+                        filesize = int(filesize)
+
+                        print(f"Uploading {filename} with a size of {filesize}B")
+
+                        #Start receiving the file from the socket
+                        #and writing to the file stream
+
+                        full_path = mypath + filename
+                        f = open(full_path, 'wb')
+
+                        while True:
+                            #Read 4096 Bytes from the socket(receive)
+                            bytes_read = clientsocket.recv(BUFFER_SIZE)
+
+                            #write to the file the bytes that we just received
+                            f.write(bytes_read)
+                            total_recv += len(bytes_read)
+                            print("{:.2f}".format((total_recv/float(filesize))*100) + "% Done")
+
+                            if(total_recv >= filesize):
+                                f.close()
+                                print("File received")
+                                break
+                        time.sleep(0.05)
+                    
                 #Delete files
                 elif(data==3):
                     print("The request to delete the following files has been received:")
