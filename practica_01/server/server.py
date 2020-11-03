@@ -4,6 +4,7 @@ import socket
 import os
 from pathlib import Path
 import tqdm
+import time
 mypath="Files/"
 PORT=5000
 SEPARATOR = "<SEPARATOR>"
@@ -57,40 +58,33 @@ if __name__ == "__main__":
                     send_this_items = pickle.loads(send_this_items)
 
                     for item in send_this_items:
-                        print(f'    -{item}')
-
-
-                    for x in range(len(send_this_items)):
+                        total_recv = 0
                         full_path = mypath + item
                         #Get the file size
                         filesize = os.path.getsize(full_path)
                         #Send the filename and filesize
                         clientsocket.send(f"{item}{SEPARATOR}{filesize}".encode())
-
+                        time.sleep(.05)
                         #start sending the file
-                        progress = tqdm.tqdm(range(filesize), \
-                        f"Sending {item}", unit="B", unit_scale=True, \
-                        unit_divisor=4096)
                         f = open(full_path, 'rb')
-                        for _ in progress:
+                        while True:
                             #read the bytes from the file
                             bytes_read = f.read(BUFFER_SIZE)
-                            if not bytes_read:
-                                #File transmitting is done
-                                break
+                            # if not bytes_read:
+                            #     #File transmitting is done
+                            #     break
                             #We use sendall to assue trasnmission in
                             #busy networks
-                            clientsocket.send(bytes_read)
-                            #update the progress bar 
-                            progress.update(len(bytes_read))
-                        f.close()
-                        print("file sent")
+                            clientsocket.sendall(bytes_read)
+                            
+                            total_recv += len(bytes_read)
+                            print("{:.2f}".format((total_recv/float(filesize))*100) + "% Done")
 
-
-
-
-
-
+                            if(total_recv >= filesize):
+                                f.close()
+                                print("File sent")
+                                break
+                        time.sleep(.05)
 
                #Upload file 
                 elif(data==2):
@@ -119,7 +113,3 @@ if __name__ == "__main__":
                     print("The request to update the file list has been received")
                     drive_content = updateFileList()
                     clientsocket.send(drive_content)
-
-                elif(data==5):
-                    print("Conection finished")
-                    break

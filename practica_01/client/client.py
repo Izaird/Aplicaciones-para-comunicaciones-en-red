@@ -4,7 +4,6 @@ import socket
 import threading
 import time
 import pickle
-import tqdm
 mypath = "Files/"
 BUFFER_SIZE = 4096
 SEPARATOR = "<SEPARATOR>"
@@ -28,7 +27,9 @@ def download():
         number_of_files = len(reslist)
         reslist = pickle.dumps(reslist)
         s.send(reslist)
+        time.sleep(.05)
         for x in range(number_of_files):
+            total_recv=0
             #Recive the file infos
             received = s.recv(BUFFER_SIZE).decode()
             filename, filesize = received.split(SEPARATOR)
@@ -37,26 +38,30 @@ def download():
 
             #convert to integer
             filesize = int(filesize)
-            print(f"{filename} : {filesize}")
+
+            print(f"Downloading {filename} with a size of {filesize}B")
+
             # start receiving the file from the socket 
             # and writing to the file stream
-            progress = tqdm.tqdm(range(filesize), f"Receiving {filename}", unit="B",\
-            unit_scale=True, unit_divisor=1024)
             full_path = mypath + filename
             f = open(full_path, "wb")
-            for _ in progress:
-                # read 1024 bytres from the socket(receive)
+            while True:
+                #read 4096 Bytes from the socket(receive)
                 bytes_read = s.recv(BUFFER_SIZE)
-                if not bytes_read:
-                    #nothing is received
-                    #file transmiting is done 
-                    break
+            #     if not bytes_read:
+            # #         #nothing is received
+            # #         #file transmiting is done 
+            #         break
                 #write to the file the byestes we just received
                 f.write(bytes_read)
-                #update the progress bar
-                progress.update(len(bytes_read))
-            f.close()
-            print("File received")
+                total_recv += len(bytes_read)
+                print("{:.2f}".format((total_recv/float(filesize))*100) + "% Done")
+
+                if(total_recv >= filesize):
+                    f.close()
+                    print("File received")
+                    break
+            time.sleep(.05)
 
 #Function to upload a file to the server
 def upload():
@@ -64,9 +69,6 @@ def upload():
         title="Select the files you want to upload", \
         filetypes=(("All Files", "*.*"), ("Png", "*.png"))) 
     print (root.tk.splitlist(files))
-    s.send(b'2')
-    data = s.recv(1024)
-    print(data.decode('utf-8'))
 
 #Function to delete a file from the server
 def delete():
@@ -98,10 +100,6 @@ def update():
     print(drive_content)
     updateFileList(drive_content)
 
-def quitApp():
-    s.send(b'5')
-    root.quit()
-
 #Function to update the listbox it needs the list of the files
 def updateFileList(drive_content):
     listServerFiles.delete(0,END)
@@ -112,7 +110,7 @@ def updateFileList(drive_content):
 if __name__ == "__main__":
     root = Tk()
     root.title('Client')
-    root.geometry("640x800")
+    root.geometry("630x800")
 
 
     # Button to download files from the server
@@ -131,13 +129,9 @@ if __name__ == "__main__":
     updateButton = Button(root, text = "Update",padx= 30, pady= 10, command=update)
     updateButton.grid(column=3, row=0, padx=10, pady=5)
 
-    # Button to exit the application and end the connection to the server
-    quitButton = Button(root, text="Quit", padx=30, pady=10, command=quitApp)
-    quitButton.grid(column=4, row=0, padx=10, pady=5)
-
     # List of the files and dyrectories on the server
     listServerFiles = Listbox(root, width=75, height=45, selectmode='multiple')
-    listServerFiles.grid(column=0, row=1, columnspan=5, pady= 10)
+    listServerFiles.grid(column=0, row=1, columnspan=4, pady= 10, padx=10)
 
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -146,6 +140,6 @@ if __name__ == "__main__":
 
     drive_content = s.recv(1024)
     drive_content = pickle.loads(drive_content)
-    print(drive_content)
+    print("Connected to the server...")
     updateFileList(drive_content)
     root.mainloop()
