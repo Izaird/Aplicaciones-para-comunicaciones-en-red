@@ -1,20 +1,19 @@
 from tkinter import *
 import pickle
-from PIL import ImageTk, Image
 import socket
-from os import listdir, walk, remove
+import os
 from pathlib import Path
+import tqdm
 mypath="Files/"
 PORT=5000
 SEPARATOR = "<SEPARATOR>"
-
 BUFFER_SIZE = 4096
 
 # Function to get all the content of the server folder File
 # *It return the information in form of bytes
 def updateFileList():
     drive_content=[]
-    for(dirpath, dirnames, filenames) in walk(mypath):
+    for(dirpath, dirnames, filenames) in os.walk(mypath):
         drive_content.extend(dirnames)
         drive_content.extend(filenames)
         break
@@ -56,10 +55,41 @@ if __name__ == "__main__":
                     print("The request to download these files has been recived:")
                     send_this_items = clientsocket.recv(1024)
                     send_this_items = pickle.loads(send_this_items)
+
                     for item in send_this_items:
                         print(f'    -{item}')
+
+
+                    for x in range(len(send_this_items)):
                         full_path = mypath + item
-                        # f = open(full_path, 'rb')
+                        #Get the file size
+                        filesize = os.path.getsize(full_path)
+                        #Send the filename and filesize
+                        clientsocket.send(f"{item}{SEPARATOR}{filesize}".encode())
+
+                        #start sending the file
+                        progress = tqdm.tqdm(range(filesize), \
+                        f"Sending {item}", unit="B", unit_scale=True, \
+                        unit_divisor=4096)
+                        f = open(full_path, 'rb')
+                        for _ in progress:
+                            #read the bytes from the file
+                            bytes_read = f.read(BUFFER_SIZE)
+                            if not bytes_read:
+                                #File transmitting is done
+                                break
+                            #We use sendall to assue trasnmission in
+                            #busy networks
+                            clientsocket.send(bytes_read)
+                            #update the progress bar 
+                            progress.update(len(bytes_read))
+                        f.close()
+                        print("file sent")
+
+
+
+
+
 
 
                #Upload file 
@@ -77,7 +107,7 @@ if __name__ == "__main__":
                         full_path = mypath + item
 
                         #We call the function remove to delete the files from the server
-                        remove(full_path)
+                        os.remove(full_path)
 
                     #After deleting the files the server sents an content update
                     print("Sending updated content list...")

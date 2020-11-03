@@ -4,6 +4,10 @@ import socket
 import threading
 import time
 import pickle
+import tqdm
+mypath = "Files/"
+BUFFER_SIZE = 4096
+SEPARATOR = "<SEPARATOR>"
 
 #Function to download a files from the server
 def download():
@@ -21,8 +25,38 @@ def download():
     else:
         s.send(b'1')
         time.sleep(.05)
+        number_of_files = len(reslist)
         reslist = pickle.dumps(reslist)
         s.send(reslist)
+        for x in range(number_of_files):
+            #Recive the file infos
+            received = s.recv(BUFFER_SIZE).decode()
+            filename, filesize = received.split(SEPARATOR)
+            #remove abslute path if there is
+            # filename = os.path.basename(filename)
+
+            #convert to integer
+            filesize = int(filesize)
+            print(f"{filename} : {filesize}")
+            # start receiving the file from the socket 
+            # and writing to the file stream
+            progress = tqdm.tqdm(range(filesize), f"Receiving {filename}", unit="B",\
+            unit_scale=True, unit_divisor=1024)
+            full_path = mypath + filename
+            f = open(full_path, "wb")
+            for _ in progress:
+                # read 1024 bytres from the socket(receive)
+                bytes_read = s.recv(BUFFER_SIZE)
+                if not bytes_read:
+                    #nothing is received
+                    #file transmiting is done 
+                    break
+                #write to the file the byestes we just received
+                f.write(bytes_read)
+                #update the progress bar
+                progress.update(len(bytes_read))
+            f.close()
+            print("File received")
 
 #Function to upload a file to the server
 def upload():
@@ -55,15 +89,14 @@ def delete():
         drive_content = s.recv(1024)
         drive_content = pickle.loads(drive_content)
         updateFileList(drive_content)
-    
 
+#Funciton to update the content list of the server    
 def update():
     s.send(b"4")
     drive_content = s.recv(1024)
     drive_content = pickle.loads(drive_content)
     print(drive_content)
     updateFileList(drive_content)
-
 
 def quitApp():
     s.send(b'5')
