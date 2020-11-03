@@ -6,6 +6,9 @@ from os import listdir, walk, remove
 from pathlib import Path
 mypath="Files/"
 PORT=5000
+SEPARATOR = "<SEPARATOR>"
+
+BUFFER_SIZE = 4096
 
 # Function to get all the content of the server folder File
 # *It return the information in form of bytes
@@ -46,9 +49,18 @@ if __name__ == "__main__":
                 if not data:
                     print("ay LMAO")
                     break
+
+                #Download files
                 data = int(data)
                 if(data==1):
-                    print(1)
+                    print("The request to download these files has been recived:")
+                    send_this_items = clientsocket.recv(1024)
+                    send_this_items = pickle.loads(send_this_items)
+                    for item in send_this_items:
+                        print(f'    -{item}')
+                        full_path = mypath + item
+                        # f = open(full_path, 'rb')
+
 
                #Upload file 
                 elif(data==2):
@@ -61,9 +73,12 @@ if __name__ == "__main__":
                     delete_this_items = clientsocket.recv(1024)
                     delete_this_items = pickle.loads(delete_this_items)
                     for item in delete_this_items:
-                        print(item)
+                        print(f'    -{item}')
                         full_path = mypath + item
+
+                        #We call the function remove to delete the files from the server
                         remove(full_path)
+
                     #After deleting the files the server sents an content update
                     print("Sending updated content list...")
                     drive_content = updateFileList()

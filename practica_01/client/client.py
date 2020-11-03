@@ -7,7 +7,22 @@ import pickle
 
 #Function to download a files from the server
 def download():
-    s.send(b'1')
+    reslist = list()
+    seleccion = listServerFiles.curselection()
+
+    for i in seleccion:
+        entrada = listServerFiles.get(i)
+        reslist.append(entrada)
+    print(reslist)
+
+    #If the user doesn't pick any item then we won't sent anything
+    if not reslist:
+        print("You need to select at least an item")
+    else:
+        s.send(b'1')
+        time.sleep(.05)
+        reslist = pickle.dumps(reslist)
+        s.send(reslist)
 
 #Function to upload a file to the server
 def upload():
