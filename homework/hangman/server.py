@@ -38,7 +38,7 @@ if __name__ == "__main__":
                     ,"bulgaras"\
                     ,"bulgaros"\
                     ,"cinetico"\
-                    ,"cisteína"\
+                    ,"cisteina"\
                     ,"coaligas"\
                     ,"cobrizas"]
 
@@ -51,7 +51,6 @@ if __name__ == "__main__":
                 ,"osas"\
                 ,"osea"\
                 ,"osos"\
-                ,"dañe"\
                 ,"dome"]
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -70,7 +69,8 @@ if __name__ == "__main__":
 
             #Once we stablish connection with the client we stay at an infinite
             #loop waiting for intrutions 
-            
+            choosen_word = ''
+            guessed_letters=[] 
             while True:
 
                 data = client_s.recv(1024)
@@ -83,7 +83,6 @@ if __name__ == "__main__":
 
                 #We also need to cast the data to int
                 data = int(data)
-                choosen_word = ''
                 #Request to choose a difficulty      
                 if(data==1):
                     print("Request to choose a difficulty has been received")
@@ -91,21 +90,51 @@ if __name__ == "__main__":
                    
                     if(difficulty=='easy'):
                         print(" easy diffilculty chosen")
-                        choosen_word = random.choice(easy_words)
+                        choosen_word = random.choice(easy_words).upper()
                         len_choosen_word = str(len(choosen_word)).encode()
                         client_s.send(len_choosen_word)
                         time.sleep(0.05)
+                        print(choosen_word)
+                        word_completion = "_" * len(choosen_word)
+
 
                     elif(difficulty=='medi'):
                         print(" medium diffilculty chosen")
-                        choosen_word = random.choice(medium_words)
+                        choosen_word = random.choice(medium_words).upper()
                         len_choosen_word = str(len(choosen_word)).encode()
                         client_s.send(len_choosen_word)
                         time.sleep(0.05)
+                        print(choosen_word)
+                        word_completion = "_" * len(choosen_word)
 
                     elif(difficulty=='hard'):
                         print(" hard diffilculty chosen")
-                        choosen_word = random.choice(hard_words)
+                        choosen_word = random.choice(hard_words).upper()
                         len_choosen_word = str(len(choosen_word)).encode()
                         client_s.send(len_choosen_word)
                         time.sleep(0.05)
+                        print(choosen_word)
+                        word_completion = "_" * len(choosen_word)
+                
+                #request to send guess
+                elif(data==2):
+                    print("Receiving guess")
+                    guess = client_s.recv(1024).decode()
+                    if guess not in choosen_word:
+                        print(guess, "is not in the word!")
+                        client_s.send(b'no')
+                    else:
+                        word_as_list = list(word_completion)
+                        indices = [i for i, letter in enumerate(choosen_word) if letter == guess]
+                        print(indices)
+                        for index in indices:
+                            word_as_list[index] = guess
+                            word_completion = "".join(word_as_list)
+                            word_completion_spaces = " ".join(word_completion)
+                        print(word_completion_spaces)
+                        client_s.send(word_completion_spaces.encode())
+                        time.sleep(0.05)
+
+
+
+
